@@ -6,6 +6,7 @@ import { wait, scaleData, normalizeData, chunkArray, sortLowRisk, sortMedRisk, s
 import { ITotalRewardHistory } from '../../interfaces/ITotalRewardHistory';
 import { IValidatorHistory } from '../../interfaces/IValidatorHistory';
 import { IValidatorRiskSets } from '../../interfaces/IValidatorRiskSets';
+import { range } from 'lodash';
 
 module.exports = {
   start: async function (api, networkName) {
@@ -29,6 +30,30 @@ module.exports = {
       }
     });
 
+    const electedInfo = await api.derive.staking.electedInfo();
+
+    const electedValidators = electedInfo.info.map((x) => x.stashId.toString());
+
+    const differentValidators = [];
+    electedValidators.map((x) => {
+      if (!sessionValidators.includes(x)) {
+        differentValidators.push(x);
+      }
+    });
+    sessionValidators.map((x) => {
+      if (!electedValidators.includes(x)) {
+        differentValidators.push(x);
+      }
+    });
+
+    console.log('differentValidators');
+    console.log(differentValidators);
+
+    console.log('electedValidators');
+    console.log(electedValidators.length);
+    console.log('sessionValidators');
+    console.log(sessionValidators.length);
+
     const nextElected = sessionAndNextElectedValidators.nextElected.map((x) => x.toString());
 
     const nominations = (await api.query.staking.nominators.entries()).map((x) => {
@@ -47,6 +72,7 @@ module.exports = {
       nominations,
       allStashes,
       maxNominatorRewardedPerValidator,
+      electedInfo,
     );
     // Logger.debug(stakingInfo);
     stakingInfo = await module.exports.getEstimatedPoolReward(api, allStashes, stakingInfo, networkName);
@@ -73,6 +99,7 @@ module.exports = {
     nominations,
     allStashes,
     maxNominatorRewardedPerValidator,
+    electedInfo,
   ) {
     await wait(5000);
 
@@ -90,12 +117,21 @@ module.exports = {
       const accountId = x.accountId.toString();
       const controllerId = x.controllerId !== null ? x.controllerId.toString() : null;
       const commission = parseInt(x.validatorPrefs.commission);
+      const info = electedInfo.info.filter((electedStakingInfo) => electedStakingInfo.stashId == stashId);
       const totalStake =
-        parseInt(x.exposure.total) !== 0 ? parseInt(x.exposure.total) : parseInt(x.stakingLedger.total);
+        info.length !== 0
+          ? info[0].exposure.total !== 0
+            ? parseInt(info[0].exposure.total)
+            : parseInt(x.exposure.total) !== 0
+            ? parseInt(x.exposure.total)
+            : parseInt(x.stakingLedger.total)
+          : parseInt(x.exposure.total) !== 0
+          ? parseInt(x.exposure.total)
+          : parseInt(x.stakingLedger.total);
       const ownStake = parseInt(x.exposure.total) !== 0 ? parseInt(x.exposure.own) : parseInt(x.stakingLedger.total);
       const claimedRewards = x.stakingLedger.claimedRewards.map((era) => parseInt(era));
       const nominators = sessionValidators.includes(stashId)
-        ? x.exposure.others.map((y) => {
+        ? info[0].exposure.others.map((y) => {
             const nomId = y.who.toString();
             const stake = parseInt(y.value);
             return {
@@ -133,12 +169,17 @@ module.exports = {
     >;
     const lastIndexDB = await TotalRewardHistory.find({}).sort({ eraIndex: -1 }).limit(1);
     const lastIndexDBTotalReward = lastIndexDB[0].eraTotalReward;
+    console.log('lastEraIndex');
+    console.log(lastIndexDB[0].eraIndex);
+    const eraIndexArr = range(lastIndexDB[0].eraIndex - 29, lastIndexDB[0].eraIndex + 1);
+    console.log('eraIndexArr');
+    console.log(eraIndexArr);
     const ValidatorHistory = Container.get(networkName + 'ValidatorHistory') as mongoose.Model<
       IValidatorHistory & mongoose.Document
     >;
     const historyData = await ValidatorHistory.aggregate([
       {
-        $match: { stashId: { $in: allStashes } },
+        $match: { stashId: { $in: allStashes }, eraIndex: { $in: eraIndexArr } },
       },
       {
         $group: {
