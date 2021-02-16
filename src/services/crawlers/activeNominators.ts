@@ -132,14 +132,18 @@ module.exports = {
     const electedNominatorsInfo = nominatorsInfo.filter((nom) =>
       nom.validatorsInfo.some((val) => val.isElected == true),
     );
+    let nomMinStake = Infinity;
     const nomCount = electedNominatorsInfo.length;
     const totalRewards = electedNominatorsInfo.reduce((a, b) => a + b.dailyEarnings, 0);
     const totalAmountStaked = electedNominatorsInfo.reduce((a, b) => {
       const nomtotalStake = b.validatorsInfo.reduce((x, y) => {
         return y.nomStake !== (null || undefined) ? x + y.nomStake : x;
       }, 0);
+      nomMinStake = Math.min(nomMinStake, nomtotalStake);
       return networkName == 'kusama' ? a + nomtotalStake / Math.pow(10, 12) : a + nomtotalStake / Math.pow(10, 10);
     }, 0);
+
+    nomMinStake = networkName == 'kusama' ? nomMinStake / Math.pow(10, 12) : nomMinStake / Math.pow(10, 10);
 
     const NominatorStats = Container.get(networkName + 'NominatorStats') as mongoose.Model<
       INominatorStats & mongoose.Document
@@ -152,6 +156,7 @@ module.exports = {
           nomCount: nomCount,
           totalRewards: totalRewards,
           totalAmountStaked: totalAmountStaked,
+          nomMinStake: nomMinStake,
         },
       ]);
     } catch (error) {
