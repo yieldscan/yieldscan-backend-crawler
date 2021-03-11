@@ -5,10 +5,10 @@ import { wait, chunkArray } from '../utils';
 import { IValidatorHistory } from '../../interfaces/IValidatorHistory';
 
 module.exports = {
-  start: async function (api, networkName) {
+  start: async function (api, networkInfo) {
     const Logger = Container.get('logger');
     Logger.info('start historyData');
-    const ValidatorHistory = Container.get(networkName + 'ValidatorHistory') as mongoose.Model<
+    const ValidatorHistory = Container.get(networkInfo.name + 'ValidatorHistory') as mongoose.Model<
       IValidatorHistory & mongoose.Document
     >;
 
