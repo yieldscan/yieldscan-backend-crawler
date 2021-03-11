@@ -9,10 +9,12 @@ import { INominatorStats } from '../../interfaces/INominatorStats';
 import { wait } from '../utils';
 
 module.exports = {
-  start: async function (api, networkName) {
+  start: async function (api, networkInfo) {
     const Logger = Container.get('logger');
     Logger.info('start activeNominators');
-    const Validators = Container.get(networkName + 'Validators') as mongoose.Model<IStakingInfo & mongoose.Document>;
+    const Validators = Container.get(networkInfo.name + 'Validators') as mongoose.Model<
+      IStakingInfo & mongoose.Document
+    >;
     const validators = await Validators.find({});
 
     // console.log(JSON.stringify(validators, null, 2));
@@ -24,8 +26,8 @@ module.exports = {
 
     // console.log(JSON.stringify(nominatorsInfo, null, 2));
 
-    await module.exports.getDailyEarnings(nominatorsInfo, networkName);
-    await module.exports.getNominatorStats(nominatorsInfo, networkName);
+    await module.exports.getDailyEarnings(nominatorsInfo, networkInfo);
+    await module.exports.getNominatorStats(nominatorsInfo, networkInfo);
 
     Logger.info('stop activeNominators');
     return;
@@ -85,19 +87,19 @@ module.exports = {
     });
     return result;
   },
-  getDailyEarnings: async function (nominatorsInfo, networkName) {
+  getDailyEarnings: async function (nominatorsInfo, networkInfo) {
     const Logger = Container.get('logger');
-    const TotalRewardHistory = Container.get(networkName + 'TotalRewardHistory') as mongoose.Model<
+    const TotalRewardHistory = Container.get(networkInfo.name + 'TotalRewardHistory') as mongoose.Model<
       ITotalRewardHistory & mongoose.Document
     >;
-    const numberOfErasPerDay = networkName == 'kusama' ? 4 : 1;
+    const numberOfErasPerDay = networkInfo.erasPerDay;
     const lastIndexDB = await TotalRewardHistory.find({}).sort({ eraIndex: -1 }).limit(numberOfErasPerDay);
-    const ValidatorHistory = Container.get(networkName + 'ValidatorHistory') as mongoose.Model<
+    const ValidatorHistory = Container.get(networkInfo.name + 'ValidatorHistory') as mongoose.Model<
       IValidatorHistory & mongoose.Document
     >;
     const nominatorRewardData = [];
     const eraIndexArr = lastIndexDB.map((x) => x.eraIndex);
-    const decimalPlaces = networkName == 'kusama' ? 12 : 10;
+    const decimalPlaces = networkInfo.decimalPlaces;
     const previous4ErasData = await ValidatorHistory.find({ eraIndex: { $in: eraIndexArr } });
     previous4ErasData.map((x) => {
       const totalReward =
@@ -113,7 +115,7 @@ module.exports = {
       const individualHistory = nominatorRewardData.filter((y) => y.nomId == x.nomId);
       x.dailyEarnings = individualHistory.reduce((a, b) => a + b.nomReward, 0);
     });
-    const ActiveNominators = Container.get(networkName + 'ActiveNominators') as mongoose.Model<
+    const ActiveNominators = Container.get(networkInfo.name + 'ActiveNominators') as mongoose.Model<
       IActiveNominators & mongoose.Document
     >;
 
@@ -127,7 +129,7 @@ module.exports = {
     return;
     // const lastIndex = lastIndexDB[0].eraIndex;
   },
-  getNominatorStats: async function (nominatorsInfo, networkName) {
+  getNominatorStats: async function (nominatorsInfo, networkInfo) {
     const Logger = Container.get('logger');
     const electedNominatorsInfo = nominatorsInfo.filter((nom) =>
       nom.validatorsInfo.some((val) => val.isElected == true),
@@ -140,12 +142,12 @@ module.exports = {
         return y.nomStake !== (null || undefined) ? x + y.nomStake : x;
       }, 0);
       nomMinStake = Math.min(nomMinStake, nomtotalStake);
-      return networkName == 'kusama' ? a + nomtotalStake / Math.pow(10, 12) : a + nomtotalStake / Math.pow(10, 10);
+      return a + nomtotalStake / Math.pow(10, networkInfo.decimalPlaces);
     }, 0);
 
-    nomMinStake = networkName == 'kusama' ? nomMinStake / Math.pow(10, 12) : nomMinStake / Math.pow(10, 10);
+    nomMinStake = nomMinStake / Math.pow(10, networkInfo.decimalPlaces);
 
-    const NominatorStats = Container.get(networkName + 'NominatorStats') as mongoose.Model<
+    const NominatorStats = Container.get(networkInfo.name + 'NominatorStats') as mongoose.Model<
       INominatorStats & mongoose.Document
     >;
 

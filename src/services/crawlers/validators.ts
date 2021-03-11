@@ -9,7 +9,7 @@ import { IValidatorRiskSets } from '../../interfaces/IValidatorRiskSets';
 import { range } from 'lodash';
 
 module.exports = {
-  start: async function (api, networkName) {
+  start: async function (api, networkInfo) {
     const Logger = Container.get('logger');
     Logger.info('start validators');
 
@@ -75,18 +75,20 @@ module.exports = {
       electedInfo,
     );
     // Logger.debug(stakingInfo);
-    stakingInfo = await module.exports.getEstimatedPoolReward(api, allStashes, stakingInfo, networkName);
+    stakingInfo = await module.exports.getEstimatedPoolReward(api, allStashes, stakingInfo, networkInfo);
     stakingInfo = await module.exports.getRiskScore(stakingInfo);
 
     // save next elected information
-    const Validators = Container.get(networkName + 'Validators') as mongoose.Model<IStakingInfo & mongoose.Document>;
+    const Validators = Container.get(networkInfo.name + 'Validators') as mongoose.Model<
+      IStakingInfo & mongoose.Document
+    >;
     try {
       await Validators.deleteMany({});
       await Validators.insertMany(stakingInfo);
     } catch (error) {
       Logger.error('Error while updating validators info', error);
     }
-    await module.exports.getLowMedHighRiskSets(Validators, networkName);
+    await module.exports.getLowMedHighRiskSets(Validators, networkInfo);
     Logger.info('stop validators');
     return;
   },
@@ -161,10 +163,10 @@ module.exports = {
     });
   },
 
-  getEstimatedPoolReward: async function (api, allStashes, stakingInfo: Array<IStakingInfo>, networkName) {
+  getEstimatedPoolReward: async function (api, allStashes, stakingInfo: Array<IStakingInfo>, networkInfo) {
     await wait(5000);
     // const Logger = Container.get('logger');
-    const TotalRewardHistory = Container.get(networkName + 'TotalRewardHistory') as mongoose.Model<
+    const TotalRewardHistory = Container.get(networkInfo.name + 'TotalRewardHistory') as mongoose.Model<
       ITotalRewardHistory & mongoose.Document
     >;
     const lastIndexDB = await TotalRewardHistory.find({}).sort({ eraIndex: -1 }).limit(1);
@@ -174,7 +176,7 @@ module.exports = {
     const eraIndexArr = range(lastIndexDB[0].eraIndex - 29, lastIndexDB[0].eraIndex + 1);
     console.log('eraIndexArr');
     console.log(eraIndexArr);
-    const ValidatorHistory = Container.get(networkName + 'ValidatorHistory') as mongoose.Model<
+    const ValidatorHistory = Container.get(networkInfo.name + 'ValidatorHistory') as mongoose.Model<
       IValidatorHistory & mongoose.Document
     >;
     const historyData = await ValidatorHistory.aggregate([
@@ -195,7 +197,7 @@ module.exports = {
 
     // calculation start Estimated Pool Reward
     // get avg era points fraction
-    const decimalPlaces = networkName == 'kusama' ? 12 : 10;
+    const decimalPlaces = networkInfo.decimalPlaces;
     historyData.map((x) => {
       x.avgEraPointsFraction =
         x.erPointsFractionArr.length !== 0
@@ -277,7 +279,7 @@ module.exports = {
     });
     return stakingInfo;
   },
-  getLowMedHighRiskSets: async function (Validators, networkName) {
+  getLowMedHighRiskSets: async function (Validators, networkInfo) {
     await wait(5000);
     const Logger = Container.get('logger');
     try {
@@ -290,7 +292,7 @@ module.exports = {
         // },
         {
           $lookup: {
-            from: networkName + 'accountidentities',
+            from: networkInfo.name + 'accountidentities',
             localField: 'stashId',
             foreignField: 'stashId',
             as: 'info',
@@ -305,11 +307,11 @@ module.exports = {
 
       sortedData.map((x) => {
         x.commission = x.commission / Math.pow(10, 7);
-        x.totalStake = x.totalStake / (networkName == 'kusama' ? Math.pow(10, 12) : Math.pow(10, 10));
+        x.totalStake = x.totalStake / Math.pow(10, networkInfo.decimalPlaces);
         x.numOfNominators = x.nominators.length;
-        x.ownStake = x.ownStake / (networkName == 'kusama' ? Math.pow(10, 12) : Math.pow(10, 10));
+        x.ownStake = x.ownStake / Math.pow(10, networkInfo.decimalPlaces);
         x.othersStake = x.totalStake - x.ownStake;
-        x.estimatedPoolReward = x.estimatedPoolReward / (networkName == 'kusama' ? Math.pow(10, 12) : Math.pow(10, 10));
+        x.estimatedPoolReward = x.estimatedPoolReward / Math.pow(10, networkInfo.decimalPlaces);
         x.name = x.info[0] !== undefined ? x.info[0].display : null;
       });
 
@@ -350,7 +352,7 @@ module.exports = {
         medriskset: medRiskSortArr.length > 16 ? medRiskSortArr.slice(0, 16) : medRiskSortArr,
         highriskset: highRiskSortArr.length > 16 ? highRiskSortArr.slice(0, 16) : highRiskSortArr,
       };
-      const ValidatorRiskSets = Container.get(networkName + 'ValidatorRiskSets') as mongoose.Model<
+      const ValidatorRiskSets = Container.get(networkInfo.name + 'ValidatorRiskSets') as mongoose.Model<
         IValidatorRiskSets & mongoose.Document
       >;
       await ValidatorRiskSets.deleteMany({});

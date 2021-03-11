@@ -42,9 +42,12 @@ export default class GetPolkaData {
     const runApiCrawlers = async (apiCrawlers, networkInfo) => {
       let isError = true;
       const getPolkadotAPI = async (wsProviderUrl) => {
+        console.log('wsProviderUrl');
+        console.log(wsProviderUrl);
         const provider = new WsProvider(wsProviderUrl, false);
         await provider.connect();
         provider.on('error', async () => {
+          console.log('here');
           Logger.error('Error: API crashed');
           await provider.disconnect();
           process.exit(1);
@@ -87,7 +90,7 @@ export default class GetPolkaData {
       const enabledCrwlers = nonApiCrawlers.filter((crawler) => crawler.enabled == 'true');
       const api = null;
       for (let i = 0; i < enabledCrwlers.length; i++) {
-        await enabledCrwlers[i].module.start(api, networkInfo.name);
+        await enabledCrwlers[i].module.start(api, networkInfo);
         await wait(5000);
       }
       return;
