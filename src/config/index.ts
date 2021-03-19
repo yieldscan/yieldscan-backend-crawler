@@ -1,7 +1,6 @@
 import dotenv from 'dotenv';
 
 // Set the NODE_ENV to 'development' by default
-process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
 const envFound = dotenv.config();
 if (envFound.error) {
@@ -9,6 +8,8 @@ if (envFound.error) {
 
   throw new Error("⚠️  Couldn't find .env file  ⚠️");
 }
+
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
 const DEFAULT_PORT = '4000';
 
@@ -52,6 +53,7 @@ export default {
       decimalPlaces: 10,
       erasPerDay: 1,
       lockUpPeriod: 28,
+      testnet: false,
     },
     {
       name: 'kusama',
@@ -59,6 +61,7 @@ export default {
       decimalPlaces: 12,
       erasPerDay: 4,
       lockUpPeriod: 7,
+      testnet: false,
     },
     {
       name: 'westend',
@@ -66,6 +69,7 @@ export default {
       decimalPlaces: 12,
       erasPerDay: 4,
       lockUpPeriod: 7,
+      testnet: true,
     },
   ],
 

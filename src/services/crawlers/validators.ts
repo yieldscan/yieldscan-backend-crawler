@@ -46,13 +46,13 @@ module.exports = {
       }
     });
 
-    console.log('differentValidators');
-    console.log(differentValidators);
+    Logger.info('differentValidators');
+    Logger.info(differentValidators);
 
-    console.log('electedValidators');
-    console.log(electedValidators.length);
-    console.log('sessionValidators');
-    console.log(sessionValidators.length);
+    Logger.info('electedValidators');
+    Logger.info(electedValidators.length);
+    Logger.info('sessionValidators');
+    Logger.info(sessionValidators.length);
 
     const nextElected = sessionAndNextElectedValidators.nextElected.map((x) => x.toString());
 
@@ -165,17 +165,17 @@ module.exports = {
 
   getEstimatedPoolReward: async function (api, allStashes, stakingInfo: Array<IStakingInfo>, networkInfo) {
     await wait(5000);
-    // const Logger = Container.get('logger');
+    const Logger = Container.get('logger');
     const TotalRewardHistory = Container.get(networkInfo.name + 'TotalRewardHistory') as mongoose.Model<
       ITotalRewardHistory & mongoose.Document
     >;
     const lastIndexDB = await TotalRewardHistory.find({}).sort({ eraIndex: -1 }).limit(1);
     const lastIndexDBTotalReward = lastIndexDB[0].eraTotalReward;
-    console.log('lastEraIndex');
-    console.log(lastIndexDB[0].eraIndex);
+    Logger.info('lastEraIndex');
+    Logger.info(lastIndexDB[0].eraIndex);
     const eraIndexArr = range(lastIndexDB[0].eraIndex - 29, lastIndexDB[0].eraIndex + 1);
-    console.log('eraIndexArr');
-    console.log(eraIndexArr);
+    Logger.info('eraIndexArr');
+    Logger.info(eraIndexArr);
     const ValidatorHistory = Container.get(networkInfo.name + 'ValidatorHistory') as mongoose.Model<
       IValidatorHistory & mongoose.Document
     >;

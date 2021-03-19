@@ -25,10 +25,12 @@ export default class GetPolkaData {
     //   process.exit(1);
     // });
     for (let i = 0; i < networks.length; i++) {
-      Logger.info('Network: ' + networks[i].name);
-      await this.start(crawlers, networks[i]);
-      Logger.info('wating 60 secs');
-      await wait(60000);
+      if (process.env.NODE_ENV !== 'production' || !networks[i].testnet) {
+        Logger.info('Network: ' + networks[i].name);
+        await this.start(crawlers, networks[i]);
+        Logger.info('wating 60 secs');
+        await wait(60000);
+      }
     }
 
     // networks.map(async (network) => {
@@ -42,12 +44,9 @@ export default class GetPolkaData {
     const runApiCrawlers = async (apiCrawlers, networkInfo) => {
       let isError = true;
       const getPolkadotAPI = async (wsProviderUrl) => {
-        console.log('wsProviderUrl');
-        console.log(wsProviderUrl);
         const provider = new WsProvider(wsProviderUrl, false);
         await provider.connect();
         provider.on('error', async () => {
-          console.log('here');
           Logger.error('Error: API crashed');
           await provider.disconnect();
           process.exit(1);
@@ -76,7 +75,7 @@ export default class GetPolkaData {
       const enabledCrwlers = apiCrawlers.filter((crawler) => crawler.enabled == 'true');
       const [api, provider] = await getPolkadotAPI(networkInfo.wsProviderUrl);
       for (let i = 0; i < enabledCrwlers.length; i++) {
-        await enabledCrwlers[i].module.start(api, networkInfo.name);
+        await enabledCrwlers[i].module.start(api, networkInfo);
         await wait(5000);
       }
 

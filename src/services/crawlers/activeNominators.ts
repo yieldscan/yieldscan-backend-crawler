@@ -17,14 +17,12 @@ module.exports = {
     >;
     const validators = await Validators.find({});
 
-    // console.log(JSON.stringify(validators, null, 2));
+    // const distinctNominators = await Validators.distinct('nominators.nomId');
 
     const nominatorsInfo = await module.exports.getNominatorsInfo(validators);
 
     Logger.info('waiting 5 secs');
     await wait(5000);
-
-    // console.log(JSON.stringify(nominatorsInfo, null, 2));
 
     await module.exports.getDailyEarnings(nominatorsInfo, networkInfo);
     await module.exports.getNominatorStats(nominatorsInfo, networkInfo);
