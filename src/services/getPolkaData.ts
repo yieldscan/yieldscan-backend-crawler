@@ -47,9 +47,10 @@ export default class GetPolkaData {
         const provider = new WsProvider(wsProviderUrl, false);
         await provider.connect();
         provider.on('error', async () => {
-          Logger.error('Error: API crashed');
+          Logger.error('Error: Unable to connect to the provider, retrying...');
           await provider.disconnect();
-          process.exit(1);
+          await wait(5000);
+          await provider.connect();
         });
         const api = await ApiPromise.create({ provider });
         api.on('error', async () => {
