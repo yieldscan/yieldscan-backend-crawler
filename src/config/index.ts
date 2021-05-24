@@ -48,14 +48,6 @@ export default {
 
   networks: [
     {
-      name: 'polkadot',
-      wsProviderUrl: process.env.WS_POLKADOT_PROVIDER_URL,
-      decimalPlaces: 10,
-      erasPerDay: 1,
-      lockUpPeriod: 28,
-      testnet: false,
-    },
-    {
       name: 'kusama',
       wsProviderUrl: process.env.WS_KUSAMA_PROVIDER_URL,
       decimalPlaces: 12,
@@ -63,6 +55,22 @@ export default {
       lockUpPeriod: 7,
       testnet: false,
     },
+    {
+      name: 'polkadot',
+      wsProviderUrl: process.env.WS_POLKADOT_PROVIDER_URL,
+      decimalPlaces: 10,
+      erasPerDay: 1,
+      lockUpPeriod: 28,
+      testnet: false,
+    },
+    // {
+    //   name: 'kusama',
+    //   wsProviderUrl: process.env.WS_KUSAMA_PROVIDER_URL,
+    //   decimalPlaces: 12,
+    //   erasPerDay: 4,
+    //   lockUpPeriod: 7,
+    //   testnet: false,
+    // },
     {
       name: 'westend',
       wsProviderUrl: process.env.WS_WESTEND_PROVIDER_URL,

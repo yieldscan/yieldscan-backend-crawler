@@ -21,7 +21,7 @@
     "kusama"
   ],
   "dependencies": {
-    "@polkadot/api": "^4.6.1",
+    "@polkadot/api": "^4.11.2",
     "body-parser": "^1.19.0",
     "celebrate": "^13.0.4",
     "cors": "^2.8.5",
