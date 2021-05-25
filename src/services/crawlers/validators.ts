@@ -82,12 +82,27 @@ module.exports = {
     const Validators = Container.get(networkInfo.name + 'Validators') as mongoose.Model<
       IStakingInfo & mongoose.Document
     >;
+
+    stakingInfo.map(async (x) => {
+      try {
+        await Validators.findOneAndUpdate({ stashId: x.stashId }, { ...x }, { upsert: true, useFindAndModify: false });
+      } catch (error) {
+        Logger.error('error while updating data for validator: ' + x.stashId);
+      }
+    });
+
     try {
-      await Validators.deleteMany({});
-      await Validators.insertMany(stakingInfo);
+      await Validators.deleteMany({ stashId: { $nin: stakingInfo.map((x) => x.stashId) } });
     } catch (error) {
-      Logger.error('Error while updating validators info', error);
+      Logger.error('error while removing inactive validators');
     }
+
+    // try {
+    //   await Validators.deleteMany({});
+    //   await Validators.insertMany(stakingInfo);
+    // } catch (error) {
+    //   Logger.error('Error while updating validators info', error);
+    // }
     await module.exports.getLowMedHighRiskSets(Validators, networkInfo);
     Logger.info('stop validators');
     return;
