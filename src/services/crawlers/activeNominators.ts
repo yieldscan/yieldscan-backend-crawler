@@ -7,6 +7,7 @@ import { IValidatorHistory } from '../../interfaces/IValidatorHistory';
 import { IActiveNominators } from '../../interfaces/IActiveNominators';
 import { INominatorStats } from '../../interfaces/INominatorStats';
 import { wait } from '../utils';
+import { isNil } from 'lodash';
 
 module.exports = {
   start: async function (api, networkInfo) {
@@ -32,34 +33,15 @@ module.exports = {
   },
 
   getNominatorsInfo: async function (validators) {
-    const result = [];
+    // const result = [];
+    const Logger = Container.get('logger');
+    const resultObj = {};
     validators.map((x) => {
       const estimatedPoolReward = x.estimatedPoolReward;
       const riskScore = x.riskScore;
       x.nominators.map((y) => {
-        if (result.some((element) => element.nomId == y.nomId)) {
-          result.map((z) => {
-            if (z.nomId == y.nomId) {
-              z.validatorsInfo.push({
-                stashId: x.stashId,
-                commission: x.commission,
-                totalStake: x.totalStake,
-                nomStake: y.stake,
-                riskScore: riskScore,
-                isElected: x.isElected,
-                isNextElected: x.isNextElected,
-                isWaiting: x.isWaiting,
-                claimedRewards: x.claimedRewards,
-                estimatedPoolReward: estimatedPoolReward,
-                estimatedReward: x.isElected
-                  ? ((estimatedPoolReward - (x.commission / Math.pow(10, 9)) * estimatedPoolReward) * y.stake) /
-                    x.totalStake
-                  : null,
-              });
-            }
-          });
-        } else {
-          result.push({
+        if (isNil(resultObj[y.nomId])) {
+          resultObj[y.nomId] = {
             nomId: y.nomId,
             validatorsInfo: [
               {
@@ -79,11 +61,76 @@ module.exports = {
                   : null,
               },
             ],
+          };
+        } else {
+          resultObj[y.nomId].validatorsInfo.push({
+            stashId: x.stashId,
+            commission: x.commission,
+            totalStake: x.totalStake,
+            nomStake: y.stake,
+            riskScore: riskScore,
+            isElected: x.isElected,
+            isNextElected: x.isNextElected,
+            isWaiting: x.isWaiting,
+            claimedRewards: x.claimedRewards,
+            estimatedPoolReward: estimatedPoolReward,
+            estimatedReward: x.isElected
+              ? ((estimatedPoolReward - (x.commission / Math.pow(10, 9)) * estimatedPoolReward) * y.stake) /
+                x.totalStake
+              : null,
           });
         }
+        // if (result.some((element) => element.nomId == y.nomId)) {
+        //   result.map((z) => {
+        //     if (z.nomId == y.nomId) {
+        //       z.validatorsInfo.push({
+        //         stashId: x.stashId,
+        //         commission: x.commission,
+        //         totalStake: x.totalStake,
+        //         nomStake: y.stake,
+        //         riskScore: riskScore,
+        //         isElected: x.isElected,
+        //         isNextElected: x.isNextElected,
+        //         isWaiting: x.isWaiting,
+        //         claimedRewards: x.claimedRewards,
+        //         estimatedPoolReward: estimatedPoolReward,
+        //         estimatedReward: x.isElected
+        //           ? ((estimatedPoolReward - (x.commission / Math.pow(10, 9)) * estimatedPoolReward) * y.stake) /
+        //             x.totalStake
+        //           : null,
+        //       });
+        //     }
+        //   });
+        // } else {
+        //   result.push({
+        //     nomId: y.nomId,
+        //     validatorsInfo: [
+        //       {
+        //         stashId: x.stashId,
+        //         commission: x.commission,
+        //         totalStake: x.totalStake,
+        //         nomStake: y.stake,
+        //         riskScore: riskScore,
+        //         isElected: x.isElected,
+        //         isNextElected: x.isNextElected,
+        //         isWaiting: x.isWaiting,
+        //         claimedRewards: x.claimedRewards,
+        //         estimatedPoolReward: estimatedPoolReward,
+        //         estimatedReward: x.isElected
+        //           ? ((estimatedPoolReward - (x.commission / Math.pow(10, 9)) * estimatedPoolReward) * y.stake) /
+        //             x.totalStake
+        //           : null,
+        //       },
+        //     ],
+        //   });
+        // }
       });
     });
-    return result;
+    Logger.info('nominators count');
+    Logger.info(Object.keys(resultObj).length);
+    const resultArr = Object.values(resultObj);
+    // console.log(JSON.stringify(resultArr, null, 2));
+    return resultArr;
   },
   getDailyEarnings: async function (nominatorsInfo, networkInfo) {
     const Logger = Container.get('logger');
@@ -117,31 +164,59 @@ module.exports = {
       IActiveNominators & mongoose.Document
     >;
 
+    nominatorsInfo.map(async (x) => {
+      try {
+        await ActiveNominators.findOneAndUpdate(
+          { nomId: x.nomId },
+          { ...x },
+          { upsert: true, useFindAndModify: false },
+        );
+      } catch (error) {
+        Logger.error('error while updating data for nomId: ' + x.nomId);
+      }
+    });
+
     try {
-      await ActiveNominators.deleteMany({});
-      await ActiveNominators.insertMany(nominatorsInfo);
+      await ActiveNominators.deleteMany({ nomId: { $nin: nominatorsInfo.map((x) => x.nomId) } });
     } catch (error) {
-      Logger.error('Error while updating active nominators info', error);
+      Logger.error('error while removing inactive nominators');
     }
+
+    Logger.info('updated nominators data');
+
+    // try {
+    //   Logger.info('deleting previous data');
+    //   await ActiveNominators.deleteMany({});
+    //   Logger.info('uploading new data');
+    //   await ActiveNominators.insertMany(nominatorsInfo);
+    //   Logger.info('done');
+    // } catch (error) {
+    //   Logger.error('Error while updating active nominators info', error);
+    // }
 
     return;
     // const lastIndex = lastIndexDB[0].eraIndex;
   },
   getNominatorStats: async function (nominatorsInfo, networkInfo) {
     const Logger = Container.get('logger');
-    const electedNominatorsInfo = nominatorsInfo.filter((nom) =>
-      nom.validatorsInfo.some((val) => val.isElected == true),
-    );
+    Logger.info('nominator stats');
+    // const electedNominatorsInfo = nominatorsInfo.filter((nom) =>
+    //   nom.validatorsInfo.some((val) => val.isElected == true),
+    // );
     let nomMinStake = Infinity;
-    const nomCount = electedNominatorsInfo.length;
-    const totalRewards = electedNominatorsInfo.reduce((a, b) => a + b.dailyEarnings, 0);
-    const totalAmountStaked = electedNominatorsInfo.reduce((a, b) => {
-      const nomtotalStake = b.validatorsInfo.reduce((x, y) => {
-        return y.nomStake !== (null || undefined) ? x + y.nomStake : x;
+    const nomCount = nominatorsInfo.filter((nom) => nom.validatorsInfo.some((val) => val.isElected == true)).length;
+    const totalRewards = nominatorsInfo
+      .filter((nom) => nom.validatorsInfo.some((val) => val.isElected == true))
+      .reduce((a, b) => a + b.dailyEarnings, 0);
+    const totalAmountStaked = nominatorsInfo
+      .filter((nom) => nom.validatorsInfo.some((val) => val.isElected == true))
+      .reduce((a, b) => {
+        const nomtotalStake = b.validatorsInfo.reduce((x, y) => {
+          return y.nomStake !== (null || undefined) ? x + y.nomStake : x;
+        }, 0);
+        nomMinStake = Math.min(nomMinStake, nomtotalStake);
+        return a + nomtotalStake / Math.pow(10, networkInfo.decimalPlaces);
       }, 0);
-      nomMinStake = Math.min(nomMinStake, nomtotalStake);
-      return a + nomtotalStake / Math.pow(10, networkInfo.decimalPlaces);
-    }, 0);
 
     nomMinStake = nomMinStake / Math.pow(10, networkInfo.decimalPlaces);
 
