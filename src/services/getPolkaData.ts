@@ -25,7 +25,7 @@ export default class GetPolkaData {
     //   process.exit(1);
     // });
     for (let i = 0; i < networks.length; i++) {
-      if (process.env.NODE_ENV !== 'production' || !networks[i].testnet) {
+      if (JSON.parse(process?.env?.TESTNETS_ENABLED) || !networks[i].testnet) {
         Logger.info('Network: ' + networks[i].name);
         await this.start(crawlers, networks[i]);
         Logger.info('wating 60 secs');
