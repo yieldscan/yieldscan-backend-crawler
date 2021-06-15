@@ -42,32 +42,46 @@ module.exports = {
     // get all account identity info
 
     const chunkedAccounts = chunkArray(accountIds, 10000);
-    const accountsInfo = [];
+    // const accountsInfo = [];
 
     for (let i = 0; i < chunkedAccounts.length; i++) {
       const info = await Promise.all(
         chunkedAccounts[i].map(async (x) => {
           const info = await api.derive.accounts.info(x);
-          const display = info.identity.display !== undefined ? info.identity.display.toString() : null;
-          const email = info.identity.email !== undefined ? info.identity.email.toString() : null;
-          const legal = info.identity.legal !== undefined ? info.identity.legal.toString() : null;
-          const riot = info.identity.riot !== undefined ? info.identity.riot.toString() : null;
-          const web = info.identity.web !== undefined ? info.identity.web.toString() : null;
-          const twitter = info.identity.twitter !== undefined ? info.identity.twitter.toString() : null;
+          // const display = info.identity.display !== undefined ? info.identity.display.toString() : null;
+          // const email = info.identity.email !== undefined ? info.identity.email.toString() : null;
+          // const legal = info.identity.legal !== undefined ? info.identity.legal.toString() : null;
+          // const riot = info.identity.riot !== undefined ? info.identity.riot.toString() : null;
+          // const web = info.identity.web !== undefined ? info.identity.web.toString() : null;
+          // const twitter = info.identity.twitter !== undefined ? info.identity.twitter.toString() : null;
           return {
             stashId: x,
             accountId: x,
-            display: display,
-            email: email,
+            display: info?.identity?.display?.toString(),
+            displayParent: info?.identity?.displayParent?.toString(),
+            parent: info?.identity?.parent?.toString(),
+            email: info?.identity?.email?.toString(),
             eraIndex: currentEra,
-            legal: legal,
-            riot: riot,
-            twitter: twitter,
-            web: web,
+            legal: info?.identity?.legal?.toString(),
+            riot: info?.identity?.riot?.toString(),
+            twitter: info?.identity?.twitter?.toString(),
+            web: info?.identity?.web?.toString(),
           };
         }),
       );
-      accountsInfo.push(...info);
+      // accountsInfo.push(...info);
+
+      info.map(async (accountInfo: IAccountIdentity) => {
+        try {
+          await AccountIdentity.findOneAndUpdate(
+            { accountId: accountInfo.accountId },
+            { ...accountInfo },
+            { upsert: true, useFindAndModify: false },
+          );
+        } catch (error) {
+          Logger.error('error while updating data for nomId: ' + accountInfo.accountId, error);
+        }
+      });
     }
 
     Logger.info('Waiting 5s');
@@ -76,12 +90,12 @@ module.exports = {
     // update info
 
     // todo replace delete insert logic with a more suitable process like update/updateMany
-    try {
-      await AccountIdentity.deleteMany({});
-      await AccountIdentity.insertMany(accountsInfo);
-    } catch (error) {
-      Logger.error('Error while updating accountIdentities', error);
-    }
+    // try {
+    //   await AccountIdentity.deleteMany({});
+    //   await AccountIdentity.insertMany(accountsInfo);
+    // } catch (error) {
+    //   Logger.error('Error while updating accountIdentities', error);
+    // }
     return;
   },
 };
