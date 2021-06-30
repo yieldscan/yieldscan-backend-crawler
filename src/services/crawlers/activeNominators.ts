@@ -26,7 +26,7 @@ module.exports = {
     await wait(5000);
 
     await module.exports.getDailyEarnings(nominatorsInfo, networkInfo);
-    await module.exports.getNominatorStats(nominatorsInfo, networkInfo);
+    await module.exports.getNominatorStats(Object.values(nominatorsInfo), networkInfo);
 
     Logger.info('stop activeNominators');
     return;
@@ -128,9 +128,9 @@ module.exports = {
     });
     Logger.info('nominators count');
     Logger.info(Object.keys(resultObj).length);
-    const resultArr = Object.values(resultObj);
+    // const resultArr = Object.values(resultObj);
     // console.log(JSON.stringify(resultArr, null, 2));
-    return resultArr;
+    return resultObj;
   },
   getDailyEarnings: async function (nominatorsInfo, networkInfo) {
     const Logger = Container.get('logger');
@@ -142,7 +142,6 @@ module.exports = {
     const ValidatorHistory = Container.get(networkInfo.name + 'ValidatorHistory') as mongoose.Model<
       IValidatorHistory & mongoose.Document
     >;
-    const nominatorRewardData = [];
     const eraIndexArr = lastIndexDB.map((x) => x.eraIndex);
     const decimalPlaces = networkInfo.decimalPlaces;
     const previous4ErasData = await ValidatorHistory.find({ eraIndex: { $in: eraIndexArr } });
@@ -153,34 +152,35 @@ module.exports = {
       const commission = x.commission / Math.pow(10, 9);
       x.nominatorsInfo.map((nom) => {
         const nomReward = (poolReward - commission * poolReward) * (nom.nomStake / x.totalStake);
-        nominatorRewardData.push({ nomId: nom.nomId, nomReward: nomReward });
+        if (nominatorsInfo[nom.nomId]) {
+          if (isNil(nominatorsInfo[nom.nomId]?.nomReward)) {
+            nominatorsInfo[nom.nomId].nomReward = [];
+          }
+          nominatorsInfo[nom.nomId].nomReward.push(nomReward);
+        }
       });
     });
-    nominatorsInfo.map((x) => {
-      const individualHistory = nominatorRewardData.filter((y) => y.nomId == x.nomId);
-      x.dailyEarnings = individualHistory.reduce((a, b) => a + b.nomReward, 0);
+    // nominatorsInfo.map((x) => {
+    //   x.dailyEarnings = individualHistory.reduce((a, b) => a + b.nomReward, 0);
+    // });
+    Object.keys(nominatorsInfo).map((nomId) => {
+      nominatorsInfo[nomId].dailyEarnings =
+        nominatorsInfo[nomId]?.nomReward && nominatorsInfo[nomId].nomReward.reduce((a, b) => a + b, 0);
     });
     const ActiveNominators = Container.get(networkInfo.name + 'ActiveNominators') as mongoose.Model<
       IActiveNominators & mongoose.Document
     >;
 
-    nominatorsInfo.map(async (x) => {
-      try {
-        await ActiveNominators.findOneAndUpdate(
-          { nomId: x.nomId },
-          { ...x },
-          { upsert: true, useFindAndModify: false },
-        );
-      } catch (error) {
-        Logger.error('error while updating data for nomId: ' + x.nomId);
-      }
-    });
+    Logger.info('updating');
+    await module.exports.updateDB(ActiveNominators, nominatorsInfo, Logger);
+    Logger.info('updated');
 
-    try {
-      await ActiveNominators.deleteMany({ nomId: { $nin: nominatorsInfo.map((x) => x.nomId) } });
-    } catch (error) {
-      Logger.error('error while removing inactive nominators');
-    }
+    Logger.info('waiting 5 secs');
+    await wait(5000);
+
+    Logger.info('removing');
+    await module.exports.removeInactiveFromDB(ActiveNominators, nominatorsInfo, Logger);
+    Logger.info('removed');
 
     Logger.info('updated nominators data');
 
@@ -207,7 +207,7 @@ module.exports = {
     const nomCount = nominatorsInfo.filter((nom) => nom.validatorsInfo.some((val) => val.isElected == true)).length;
     const totalRewards = nominatorsInfo
       .filter((nom) => nom.validatorsInfo.some((val) => val.isElected == true))
-      .reduce((a, b) => a + b.dailyEarnings, 0);
+      .reduce((a, b) => (b.dailyEarnings ? a + b.dailyEarnings : a), 0);
     const totalAmountStaked = nominatorsInfo
       .filter((nom) => nom.validatorsInfo.some((val) => val.isElected == true))
       .reduce((a, b) => {
@@ -240,5 +240,38 @@ module.exports = {
 
     return;
     // const lastIndex = lastIndexDB[0].eraIndex;
+  },
+  updateDB: async function (ActiveNominators, nominatorsInfo, Logger) {
+    Object.values(nominatorsInfo).map(async (x) => {
+      try {
+        await ActiveNominators.findOneAndUpdate(
+          { nomId: x.nomId },
+          { ...x },
+          { upsert: true, useFindAndModify: false },
+        );
+      } catch (error) {
+        Logger.error('error while updating data for nomId: ' + x.nomId);
+      }
+    });
+    return;
+  },
+  removeInactiveFromDB: async function (ActiveNominators, nominatorsInfo, Logger) {
+    const inactiveNoms = (
+      await ActiveNominators.aggregate([
+        { $match: { nomId: { $nin: Object.keys(nominatorsInfo) } } },
+        { $project: { nomId: 1 } },
+      ])
+    ).map((info) => info?.nomId);
+    Logger.info('inactiveNoms');
+    Logger.info(inactiveNoms);
+    if (inactiveNoms.length > 0) {
+      try {
+        await ActiveNominators.deleteMany({ nomId: { $in: inactiveNoms } });
+      } catch (error) {
+        Logger.error('error while removing inactive nominators');
+      }
+    }
+
+    return;
   },
 };
