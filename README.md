@@ -14,7 +14,7 @@ We are always working on improving our codebase, and welcome any suggestions or 
 
 2. Fork the repo and make changes.
 
-3. Make a PR to `devlop` branch.
+3. Make a PR.
 
 ### Codebase Overview:
 
@@ -26,6 +26,12 @@ Important packages:
 - [src/services](https://github.com/yieldscan/yieldscan-backend-crawler/tree/master/src/services): Here we define different crawlers.
 
 ### Development Guide:
+
+#### Pre-requisite:
+
+- MongoDb connection url, make sure you have a running mongodb instance.
+
+  - this [article](https://zellwk.com/blog/local-mongodb/#:~:text=To%20connect%20to%20your%20local,databases%20in%20your%20local%20MongoDB.) can help setting an instance locally.
 
 Clone this or forked repository:
 
