@@ -1,226 +1,104 @@
-# YieldScan Backend
+# YieldScan Backend Crawler
 
-  ## Development
+## Overview:
+
+This repo manages crawlers for the [YieldScan](https://yieldscan.app) backend. Crawlers fetch data via [polkadot/api](https://github.com/polkadot-js/api) from the node endpoints and store in our database.
+
+## Development:
+
+We are always working on improving our codebase, and welcome any suggestions or contributions.
+
+### Contribution Guide:
+
+1. Create an issue for the improvement: this helps in saving valuable time incase anyone else is working on the same.
+
+2. Fork the repo and do changes.
+
+3. Make a PR to `devlop` branch.
+
+### Development Guide:
 
 Clone the repository:
 
-``` 
-git clone https://github.com/buidl-labs/yieldscan-backend-ts.git
+```
+git clone https://github.com/yieldscan/yieldscan-backend-crawler
 ```
 
 cd into the main folder:
 
-``` 
-cd yieldscan-backend-ts
+```
+cd yieldscan-backend-crawler
 ```
 
-  The first time, you will need to run:
+The first time, you will need to run:
 
-  
-
-``` 
+```
   npm install
-  ```
+```
 
-  
-  Define the following environment variables or simply save them in a `.env` file inside the main folder:
-  
+Define the following environment variables in a `.env` file inside the main folder:
 
-``` 
-MONGODB_URI=your mongo url
-WS_PROVIDER_URL='wss://kusama-rpc.polkadot.io'    //for Kusama
+```
+MONGODB_URI=<your mongodb connection url>
+WS_KUSAMA_PROVIDER_URL='wss://kusama-rpc.polkadot.io'
+WS_POLKADOT_PROVIDER_URL='wss://polkadot.api.onfinality.io/public-ws'
+WS_WESTEND_PROVIDER_URL='wss://westend-rpc.polkadot.io'
+NODE_ENV='development'
 CRAWLER_ERA_POINTS_HISTORY_ENABLE=true
-CRAWLER_NOMINATOR_HISTORY_ENABLE=true
 CRAWLER_VALIDATORS_ENABLED=true
 CRAWLER_ACTIVE_NOMINATORS_ENABLED=true
-CRAWLER_ACCOUNT_IDENTITY=true
+TESTNETS_ENABLED=true
 CRAWLER_TOTAL_REWARD_HISTORY=true
 CRAWLER_COUNCIL_ENABLED=true
-LOG_LEVEL='debug'
+domain='https://yieldscan.app'
+LOG_LEVEL='silly'
 ```
 
 Then just start the server with
 
-``` 
+For production:
+
+```
 npm start
 ```
 
-  It uses nodemon for livereloading ✌️
+For development:
+
+```
+npm run dev
+```
+
+It uses nodemon in development for livereloading ✌️
 
 **IMPORTANT NOTE:** When creating the database for the first time, it would might take around 30-45 minutes for all data endpoints to start functioning.
 
-  ## Codebase Guide:
+## Docker:
 
-  ### Git commit
+You can run a docker container via -
 
-  + Run `npm run git:commit` for commiting your code and follow the process
-
-  ### How to create route?
-
-  + Create `route` file: `src/api/routes/<your-route-name>.ts` 
-
-  Example:
-  
-
-``` javascript
-    import {
-        Router,
-        Request,
-        Response
-    } from 'express';
-    const route = Router();
-
-    export default (app: Router) => {
-        // Register our endpoint for this route-apis
-        app.use('/validator', route);
-
-        route.get('/', (req: Request, res: Response) => {
-            return res.json({
-                validators: []
-            }).status(200);
-        });
-    };
+```
+docker run -e MONGODB_URI=<your mongodb connection url> -t sahilnanda/yieldscan-crawler
 ```
 
-  + Register your created route in `src/api/routes/index.ts` by passing it the appInstance
+## Tests:
 
-  ### How to add/use services?
+You can run tests via
 
-  + Create `service` file (if not exists): `src/services/<service-name>.ts` 
-
-  Example:
-  
-
-``` javascript
-    import {
-        Service,
-        Inject
-    } from 'typedi';
-    import SomeOtherService from './some-other-service';
-    import {
-        EventDispatcher,
-        EventDispatcherInterface
-    } from '../decorators/eventDispatcher';
-
-    @Service()
-    export default class YourService {
-        constructor(
-            // inject mongoose models that you've registered in your containers
-            @Inject('validatorModel') private validatorModel: Models.ValidatorModel,
-
-            // if you wish to use some other service in this service
-            private someOtherService: SomeOtherService,
-
-            // if you wish to dispatch events from this service
-            @EventDispatcher() private eventDispatcher: EventDispatcherInterface,
-        ) {}
-    };
+```
+npm run test
 ```
 
-  + Use your service by passing it through DI Container
+## Codebase Guide:
 
-  Example:
-  
+### Codebase Overview:
 
-``` javascript
-    import YourService from 'services/your-service';
+Important packages:
 
-    const yourServiceInstance = Container.get(YourService);
-```
+- [src/config](https://github.com/yieldscan/yieldscan-backend-crawler/tree/master/src/config): Here we define configurations for the application(supported networks, crawlers, etc).
+- [src/models](https://github.com/yieldscan/yieldscan-backend-crawler/tree/master/src/models): Schema for the database.
+- [src/interfaces](https://github.com/yieldscan/yieldscan-backend-crawler/tree/master/src/interfaces): Interfaces for the models.
+- [src/services](https://github.com/yieldscan/yieldscan-backend-crawler/tree/master/src/services): Here we define different crawlers.
 
-  ### How to create/use subcribers?
+### Git commit
 
-  + Create `subscriber` file (if not exists): `src/subscribers/<subscriber-name>.ts` 
-
-  Example:
-  
-
-``` javascript
-    import {
-        Container
-    } from 'typedi';
-    import {
-        EventSubscriber,
-        On
-    } from 'event-dispatch';
-
-    @EventSubscriber()
-    export default class YourSubscriber {
-        @On(events.eventGroup.someEvent)
-        public eventHandlerForTheAboveEvent({
-            params
-        }) {
-            // do stuff
-        }
-    };
-```
-
-  + Trigger an event from anywhere (preferably a service) in the app using the `eventDispatcher` instance
-
-  Example:
-  
-
-``` javascript
-    eventDispatcher.dispatch(events.eventGroup.someEvent, {
-        ...eventParams
-    });
-```
-
-  ### How to create new models?
-
-  + Create `definition` file: `src/models/definitions/<definition-name>.ts` 
-
-  Example:
-  
-
-``` javascript
-    export default {
-        name: {
-            type: String,
-            required: true,
-            index: true
-        },
-    };
-```
-
-  + Create interface for this model: `src/interfaces/<interface-name>.ts` 
-
-  Example:
-  
-
-``` javascript
-    interface IValidator {
-        // fields here
-    };
-```
-
-  + Create `model` file: `src/models/<model-name>.ts` 
-
-  Example:
-  
-
-``` javascript
-    import {
-        IValidator
-    } from '../interfaces/IValidator';
-    import ValidatorDefinition from './definitions/validator.ts';
-    import mongoose from 'mongoose';
-
-    const Validator = new mongoose.Schema(ValidatorDefinition, {
-        timestamps: true
-    });
-
-    export default mongoose.model < IValidator & mongoose.Document > ('Validator', Validator);
-```
-
-  + Register the mongoose model and the interface globally for TS under `src/types/express/index.d.ts` 
-
-  + Register the model into the DI Container by adding it to `models` array: `src/loaders/index.ts` 
-
-  + To use the model anywhere:
-
-  
-
-``` javascript
-    const modelInstance = Container.get('modelName');
-```
+- Run `npm run git:commit` for commiting your code and follow the process.
