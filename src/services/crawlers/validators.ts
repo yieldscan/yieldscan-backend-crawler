@@ -156,6 +156,7 @@ module.exports = {
       const accountId = x.accountId.toString();
       const controllerId = x.controllerId !== null ? x.controllerId.toString() : null;
       const commission = parseInt(x.validatorPrefs.commission);
+      const blocked = x?.validatorPrefs?.blocked;
       const info = electedInfo.info.filter((electedStakingInfo) => electedStakingInfo.stashId == stashId);
       const totalStake =
         info.length !== 0
@@ -188,6 +189,7 @@ module.exports = {
         controllerId: controllerId,
         accountId: accountId,
         commission: commission,
+        blocked: blocked,
         totalStake: totalStake,
         isElected: sessionValidators.includes(stashId),
         isNextElected: nextElected.includes(stashId),
@@ -322,7 +324,7 @@ module.exports = {
     try {
       const sortedData = await Validators.aggregate([
         {
-          $match: { $and: [{ isElected: true }, { isNextElected: true }] },
+          $match: { $and: [{ isElected: true }, { isNextElected: true }, { blocked: false }] },
         },
         // {
         //   $match: { isNextElected: true },
