@@ -10,7 +10,7 @@ import { wait } from '../utils';
 import { isNil } from 'lodash';
 
 module.exports = {
-  start: async function (api, networkInfo) {
+  start: async function (networkInfo) {
     const Logger = Container.get('logger');
     Logger.info('start activeNominators');
     const Validators = Container.get(networkInfo.name + 'Validators') as mongoose.Model<
@@ -80,56 +80,10 @@ module.exports = {
               : null,
           });
         }
-        // if (result.some((element) => element.nomId == y.nomId)) {
-        //   result.map((z) => {
-        //     if (z.nomId == y.nomId) {
-        //       z.validatorsInfo.push({
-        //         stashId: x.stashId,
-        //         commission: x.commission,
-        //         totalStake: x.totalStake,
-        //         nomStake: y.stake,
-        //         riskScore: riskScore,
-        //         isElected: x.isElected,
-        //         isNextElected: x.isNextElected,
-        //         isWaiting: x.isWaiting,
-        //         claimedRewards: x.claimedRewards,
-        //         estimatedPoolReward: estimatedPoolReward,
-        //         estimatedReward: x.isElected
-        //           ? ((estimatedPoolReward - (x.commission / Math.pow(10, 9)) * estimatedPoolReward) * y.stake) /
-        //             x.totalStake
-        //           : null,
-        //       });
-        //     }
-        //   });
-        // } else {
-        //   result.push({
-        //     nomId: y.nomId,
-        //     validatorsInfo: [
-        //       {
-        //         stashId: x.stashId,
-        //         commission: x.commission,
-        //         totalStake: x.totalStake,
-        //         nomStake: y.stake,
-        //         riskScore: riskScore,
-        //         isElected: x.isElected,
-        //         isNextElected: x.isNextElected,
-        //         isWaiting: x.isWaiting,
-        //         claimedRewards: x.claimedRewards,
-        //         estimatedPoolReward: estimatedPoolReward,
-        //         estimatedReward: x.isElected
-        //           ? ((estimatedPoolReward - (x.commission / Math.pow(10, 9)) * estimatedPoolReward) * y.stake) /
-        //             x.totalStake
-        //           : null,
-        //       },
-        //     ],
-        //   });
-        // }
       });
     });
     Logger.info('nominators count');
     Logger.info(Object.keys(resultObj).length);
-    // const resultArr = Object.values(resultObj);
-    // console.log(JSON.stringify(resultArr, null, 2));
     return resultObj;
   },
   getDailyEarnings: async function (nominatorsInfo, networkInfo) {
@@ -171,6 +125,12 @@ module.exports = {
       IActiveNominators & mongoose.Document
     >;
 
+    const oldNominators = await ActiveNominators.find({}, { nomId: 1, _id: 0 });
+
+    const inactiveNominators = oldNominators
+      .filter((nom) => !Object.keys(nominatorsInfo).includes(nom.nomId))
+      .map((nom) => nom.nomId);
+
     Logger.info('updating');
     await module.exports.updateDB(ActiveNominators, nominatorsInfo, Logger);
     Logger.info('updated');
@@ -179,30 +139,16 @@ module.exports = {
     await wait(5000);
 
     Logger.info('removing');
-    await module.exports.removeInactiveFromDB(ActiveNominators, nominatorsInfo, Logger);
+    await module.exports.removeInactiveFromDB(ActiveNominators, inactiveNominators, Logger);
     Logger.info('removed');
 
     Logger.info('updated nominators data');
 
-    // try {
-    //   Logger.info('deleting previous data');
-    //   await ActiveNominators.deleteMany({});
-    //   Logger.info('uploading new data');
-    //   await ActiveNominators.insertMany(nominatorsInfo);
-    //   Logger.info('done');
-    // } catch (error) {
-    //   Logger.error('Error while updating active nominators info', error);
-    // }
-
     return;
-    // const lastIndex = lastIndexDB[0].eraIndex;
   },
   getNominatorStats: async function (nominatorsInfo, networkInfo) {
     const Logger = Container.get('logger');
     Logger.info('nominator stats');
-    // const electedNominatorsInfo = nominatorsInfo.filter((nom) =>
-    //   nom.validatorsInfo.some((val) => val.isElected == true),
-    // );
     let nomMinStake = Infinity;
     const nomCount = nominatorsInfo.filter((nom) => nom.validatorsInfo.some((val) => val.isElected == true)).length;
     const totalRewards = nominatorsInfo
@@ -239,7 +185,6 @@ module.exports = {
     }
 
     return;
-    // const lastIndex = lastIndexDB[0].eraIndex;
   },
   updateDB: async function (ActiveNominators, nominatorsInfo, Logger) {
     Object.values(nominatorsInfo).map(async (x) => {
@@ -255,20 +200,14 @@ module.exports = {
     });
     return;
   },
-  removeInactiveFromDB: async function (ActiveNominators, nominatorsInfo, Logger) {
-    const inactiveNoms = (
-      await ActiveNominators.aggregate([
-        { $match: { nomId: { $nin: Object.keys(nominatorsInfo) } } },
-        { $project: { nomId: 1 } },
-      ])
-    ).map((info) => info?.nomId);
-    Logger.info('inactiveNoms');
-    Logger.info(inactiveNoms);
-    if (inactiveNoms.length > 0) {
+  removeInactiveFromDB: async function (ActiveNominators, inactiveNominators, Logger) {
+    Logger.info('inactiveNominators');
+    Logger.info(inactiveNominators);
+    if (inactiveNominators.length > 0) {
       try {
-        await ActiveNominators.deleteMany({ nomId: { $in: inactiveNoms } });
+        await ActiveNominators.deleteMany({ nomId: { $in: inactiveNominators } });
       } catch (error) {
-        Logger.error('error while removing inactive nominators');
+        Logger.error('error while removing inactive nominators', error);
       }
     }
 
