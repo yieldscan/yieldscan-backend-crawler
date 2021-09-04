@@ -47,10 +47,8 @@ export default class GetPolkaData {
         const provider = new WsProvider(wsProviderUrl, false);
         await provider.connect();
         provider.on('error', async () => {
-          Logger.error('Error: Unable to connect to the provider, retrying...');
-          await provider.disconnect();
-          await wait(5000);
-          await provider.connect();
+          Logger.error('Error: Unable to connect to the provider, exiting...');
+          process.exit(1);
         });
         const api = await ApiPromise.create({ provider });
         api.on('error', async () => {
@@ -74,23 +72,23 @@ export default class GetPolkaData {
         return [api, provider];
       };
       const enabledCrwlers = apiCrawlers.filter((crawler) => crawler.enabled == 'true');
-      const [api, provider] = await getPolkadotAPI(networkInfo.wsProviderUrl);
+      let [api, provider] = await getPolkadotAPI(networkInfo.wsProviderUrl);
       for (let i = 0; i < enabledCrwlers.length; i++) {
         await enabledCrwlers[i].module.start(api, networkInfo);
         await wait(5000);
       }
 
       isError = false;
-
-      await provider.disconnect();
+      await api.disconnect();
+      api = null;
+      provider = null;
       return;
     };
 
     const runNonApiCrawlers = async (nonApiCrawlers, networkInfo) => {
       const enabledCrwlers = nonApiCrawlers.filter((crawler) => crawler.enabled == 'true');
-      const api = null;
       for (let i = 0; i < enabledCrwlers.length; i++) {
-        await enabledCrwlers[i].module.start(api, networkInfo);
+        await enabledCrwlers[i].module.start(networkInfo);
         await wait(5000);
       }
       return;
