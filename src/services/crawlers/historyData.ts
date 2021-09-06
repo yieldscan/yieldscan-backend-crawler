@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 
 import { wait, chunkArray } from '../utils';
 import { IValidatorHistory } from '../../interfaces/IValidatorHistory';
+import { isNil } from 'lodash';
 
 module.exports = {
   start: async function (api, networkInfo) {
@@ -13,7 +14,7 @@ module.exports = {
     >;
 
     const eraIndex = await module.exports.getEraIndexes(api, ValidatorHistory);
-    // Logger.debug(eraIndex);
+    Logger.info(eraIndex);
     if (eraIndex.length !== 0) {
       await module.exports.storeValidatorHistory(api, eraIndex, ValidatorHistory);
     }
@@ -23,8 +24,9 @@ module.exports = {
 
   getSlashes: async function (api, pointsHistory) {
     const slashes = {};
+
     for (let i = 0; i < pointsHistory.length; i++) {
-      const individuals = Object.keys(pointsHistory[i].erasRewardPoints.individual).filter(
+      const individuals = Object.keys(pointsHistory[i].erasRewardPoints.validators).filter(
         (x) => !Object.keys(slashes).includes(x),
       );
 
@@ -67,10 +69,14 @@ module.exports = {
 
   storeValidatorHistory: async function (api, eraIndex, ValidatorHistory) {
     const Logger = Container.get('logger');
-    const erasRewardPointsArr = await Promise.all(eraIndex.map(async (i) => api.query.staking.erasRewardPoints(i)));
-    const pointsHistory = eraIndex.map((i, index) => {
-      return { eraIndex: i, erasRewardPoints: erasRewardPointsArr[index].toJSON() };
-    });
+    const erasRewardPointsArr = await api.derive.staking.erasPoints();
+    const pointsHistory = eraIndex.reduce((acc, i) => {
+      const eraPoints = erasRewardPointsArr.filter((info) => parseInt(info.era.toString()) === i)[0];
+      if (!isNil(eraPoints)) {
+        acc.push({ eraIndex: i, erasRewardPoints: eraPoints });
+      }
+      return acc;
+    }, []);
 
     Logger.info('getting slash info');
     const slashes = await module.exports.getSlashes(api, pointsHistory);
@@ -79,7 +85,7 @@ module.exports = {
     for (let i = 0; i < pointsHistory.length; i++) {
       const rewards: Array<IValidatorHistory> = [];
 
-      const chunkedArr = chunkArray(Object.keys(pointsHistory[i].erasRewardPoints.individual), 100);
+      const chunkedArr = chunkArray(Object.keys(pointsHistory[i].erasRewardPoints.validators), 100);
 
       const valExposure2 = [];
       const valPrefs2 = [];
@@ -100,7 +106,7 @@ module.exports = {
       Logger.info('waiting 5s');
       await wait(5000);
 
-      Object.keys(pointsHistory[i].erasRewardPoints.individual).forEach((y, index) => {
+      Object.keys(pointsHistory[i].erasRewardPoints.validators).forEach((y, index) => {
         const nominatorsInfo = valExposure2[index].others.map((x) => {
           const nomId = x.who.toString();
           return {
@@ -113,8 +119,8 @@ module.exports = {
           stashId: y,
           commission: parseInt(valPrefs2[index].commission),
           eraIndex: pointsHistory[i].eraIndex,
-          eraPoints: pointsHistory[i].erasRewardPoints.individual[y],
-          totalEraPoints: pointsHistory[i].erasRewardPoints.total,
+          eraPoints: parseInt(pointsHistory[i].erasRewardPoints.validators[y]),
+          totalEraPoints: parseInt(pointsHistory[i].erasRewardPoints.eraPoints),
           totalStake: parseInt(valExposure2[index].total),
           nominatorsInfo: nominatorsInfo,
           slashCount: slashInfo[0] !== undefined ? parseInt(slashInfo[0].total) : 0,
