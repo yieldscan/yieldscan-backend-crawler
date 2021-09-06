@@ -6,7 +6,7 @@ import { wait, scaleData, normalizeData, chunkArray, sortLowRisk, sortMedRisk, s
 import { ITotalRewardHistory } from '../../interfaces/ITotalRewardHistory';
 import { IValidatorHistory } from '../../interfaces/IValidatorHistory';
 import { IValidatorRiskSets } from '../../interfaces/IValidatorRiskSets';
-import { range } from 'lodash';
+import { isNil, range } from 'lodash';
 import { IAccountIdentity } from '../../interfaces/IAccountIdentity';
 
 module.exports = {
@@ -351,7 +351,7 @@ module.exports = {
         x.ownStake = x.ownStake / Math.pow(10, networkInfo.decimalPlaces);
         x.othersStake = x.totalStake - x.ownStake;
         x.estimatedPoolReward = x.estimatedPoolReward / Math.pow(10, networkInfo.decimalPlaces);
-        x.name = x.info[0] !== undefined ? x.info[0].display : null;
+        x.info = isNil(x.info[0]) ? null : x.info[0];
       });
 
       const arr1 = sortedData.map(
@@ -364,7 +364,7 @@ module.exports = {
           rewardsPer100KSM,
           riskScore,
           oversubscribed,
-          name,
+          info,
           ownStake,
           othersStake,
         }) => ({
@@ -376,7 +376,7 @@ module.exports = {
           rewardsPer100KSM,
           riskScore,
           oversubscribed,
-          name,
+          info,
           ownStake,
           othersStake,
         }),
