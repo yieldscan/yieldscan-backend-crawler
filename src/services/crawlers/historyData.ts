@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 
 import { wait, chunkArray } from '../utils';
 import { IValidatorHistory } from '../../interfaces/IValidatorHistory';
+import { isNil } from 'lodash';
 
 module.exports = {
   start: async function (api, networkInfo) {
@@ -13,7 +14,7 @@ module.exports = {
     >;
 
     const eraIndex = await module.exports.getEraIndexes(api, ValidatorHistory);
-    // Logger.debug(eraIndex);
+    Logger.info(eraIndex);
     if (eraIndex.length !== 0) {
       await module.exports.storeValidatorHistory(api, eraIndex, ValidatorHistory);
     }
@@ -23,6 +24,7 @@ module.exports = {
 
   getSlashes: async function (api, pointsHistory) {
     const slashes = {};
+
     for (let i = 0; i < pointsHistory.length; i++) {
       const individuals = Object.keys(pointsHistory[i].erasRewardPoints.validators).filter(
         (x) => !Object.keys(slashes).includes(x),
@@ -68,10 +70,13 @@ module.exports = {
   storeValidatorHistory: async function (api, eraIndex, ValidatorHistory) {
     const Logger = Container.get('logger');
     const erasRewardPointsArr = await api.derive.staking.erasPoints();
-    const pointsHistory = eraIndex.map((i) => {
+    const pointsHistory = eraIndex.reduce((acc, i) => {
       const eraPoints = erasRewardPointsArr.filter((info) => parseInt(info.era.toString()) === i)[0];
-      return { eraIndex: i, erasRewardPoints: eraPoints };
-    });
+      if (!isNil(eraPoints)) {
+        acc.push({ eraIndex: i, erasRewardPoints: eraPoints });
+      }
+      return acc;
+    }, []);
 
     Logger.info('getting slash info');
     const slashes = await module.exports.getSlashes(api, pointsHistory);
