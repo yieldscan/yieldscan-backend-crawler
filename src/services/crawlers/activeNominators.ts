@@ -204,10 +204,13 @@ module.exports = {
     Logger.info('inactiveNominators');
     Logger.info(inactiveNominators);
     if (inactiveNominators.length > 0) {
-      try {
-        await ActiveNominators.deleteMany({ nomId: { $in: inactiveNominators } });
-      } catch (error) {
-        Logger.error('error while removing inactive nominators', error);
+      for (let i = 0; i < inactiveNominators.length; i++) {
+        const nomId = inactiveNominators[i];
+        try {
+          await ActiveNominators.deleteMany({ nomId: nomId });
+        } catch (error) {
+          Logger.error('error while removing inactive nominators', error);
+        }
       }
     }
 

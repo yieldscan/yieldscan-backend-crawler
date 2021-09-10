@@ -20,10 +20,13 @@ We are always working on improving our codebase, and welcome any suggestions or 
 
 Important packages:
 
+- [src/services/crawlers](https://github.com/yieldscan/yieldscan-backend-crawler/tree/master/src/services/crawlers): Crawlers fetches different data using the [polkadot/api](https://github.com/polkadot-js/api) and stores it in our database, here are some of them:
+  - [validators](https://github.com/yieldscan/yieldscan-backend-crawler/blob/master/src/services/crawlers/validators.ts): We fetch elected, nextElected and waiting validators, then using the historic data we assign risk-score and calculate estimated staking rewards for each validator.
+  - [council](https://github.com/yieldscan/yieldscan-backend-crawler/blob/master/src/services/crawlers/council.ts): For storing the council memebers and backers data in the database.
+  - [historyData](https://github.com/yieldscan/yieldscan-backend-crawler/blob/master/src/services/crawlers/historyData.ts): Here we fetch and store historic data like eraPoints, totalEraPoints, slashes, etc. This data is then used for calculating estimated staking rewards and risk-score for active validators.
 - [src/config](https://github.com/yieldscan/yieldscan-backend-crawler/tree/master/src/config): Here we define configurations for the application(supported networks, crawlers, etc).
 - [src/models](https://github.com/yieldscan/yieldscan-backend-crawler/tree/master/src/models): Schema for the database.
 - [src/interfaces](https://github.com/yieldscan/yieldscan-backend-crawler/tree/master/src/interfaces): Interfaces for the models.
-- [src/services](https://github.com/yieldscan/yieldscan-backend-crawler/tree/master/src/services): Here we define different crawlers.
 
 ### Development Guide:
 
