@@ -1,3 +1,6 @@
 [submodule "src/models"]
 	path = src/models
 	url = https://github.com/yieldscan/ys-models.git
+[submodule "src/interfaces"]
+	path = src/interfaces
+	url = https://github.com/yieldscan/ys-interfaces.git
