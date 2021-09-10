@@ -14,9 +14,12 @@ module.exports = {
     >;
 
     const eraIndex = await module.exports.getEraIndexes(api, ValidatorHistory);
-    Logger.info(eraIndex);
     if (eraIndex.length !== 0) {
+      Logger.info('fetching data for eras:');
+      Logger.info(eraIndex);
       await module.exports.storeValidatorHistory(api, eraIndex, ValidatorHistory);
+    } else {
+      Logger.info('historic data is updated to latest');
     }
     Logger.info('stop historyData');
     return;
@@ -47,12 +50,13 @@ module.exports = {
   },
 
   getEraIndexes: async function (api, ValidatorHistory) {
-    // const Logger = Container.get('logger');
+    const Logger = Container.get('logger');
     const lastIndexDB = await ValidatorHistory.find({}).sort({ eraIndex: -1 }).limit(1);
     const historyDepth = await api.query.staking.historyDepth();
     const currentEra = await api.query.staking.currentEra();
     const lastAvailableEra = Math.max(1, currentEra - historyDepth);
-    // Logger.debug('lastAvailableEra', lastAvailableEra);
+
+    Logger.info(`activeEra ${parseInt(currentEra)}, db synced to era: ${lastIndexDB[0]?.eraIndex}`);
 
     // check whether there is any previous data available inside the DB
     if (lastIndexDB.length !== 0) {
@@ -131,6 +135,7 @@ module.exports = {
       if (rewards.length > 0) {
         try {
           await ValidatorHistory.insertMany(rewards);
+          Logger.info(`db synced to era: ${rewards[0]?.eraIndex}`);
         } catch (error) {
           Logger.error('Error while updating validator history data', error);
         }
