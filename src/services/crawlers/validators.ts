@@ -382,9 +382,11 @@ module.exports = {
         }),
       );
 
-      const lowRiskSortArr = sortLowRisk(arr1);
-      const medRiskSortArr = sortMedRisk(arr1);
-      const highRiskSortArr = sortHighRisk(arr1);
+      const minRewardPerDay = 0.025 / networkInfo.erasPerDay;
+
+      const lowRiskSortArr = sortLowRisk(arr1, minRewardPerDay);
+      const medRiskSortArr = sortMedRisk(arr1, minRewardPerDay);
+      const highRiskSortArr = sortHighRisk(arr1, minRewardPerDay);
 
       const result = {
         lowriskset: lowRiskSortArr.length > 16 ? lowRiskSortArr.slice(0, 16) : lowRiskSortArr,
