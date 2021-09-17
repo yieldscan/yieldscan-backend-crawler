@@ -19,22 +19,28 @@ export function normalizeData(val: number, max: number, min: number): number {
   return (val - min) / (max - min);
 }
 
-export function sortLowRisk(arr: Array<IStakingInfo>): Array<IStakingInfo> {
-  const lowestRiskset = arr.filter((x) => x.riskScore < 0.3 && x.commission !== 100 && !x.oversubscribed);
+export function sortLowRisk(arr: Array<IStakingInfo>, minRewardPerDay: number): Array<IStakingInfo> {
+  const lowestRiskset = arr.filter(
+    (x) =>
+      x.riskScore < 0.3 &&
+      x.commission !== 100 &&
+      !x.oversubscribed &&
+      !x.blocked &&
+      x.rewardsPer100KSM > minRewardPerDay,
+  );
 
-  // Uncomment below if you want to include include suggestions from other risk-sets
-
-  // const medRiskSet = arr.filter((x) => x.riskScore >= 0.3 && x.riskScore < 0.5);
-  // // console.log(medRiskSet)
-  // const lowMedSet = lowestRiskset.concat(medRiskSet);
-  // const remaining = arr.filter((n) => !lowMedSet.includes(n));
-  // const result = lowMedSet.concat(remaining);
-  // return result;
   return lowestRiskset;
 }
 
-export function sortMedRisk(arr: Array<IStakingInfo>): Array<IStakingInfo> {
-  const medRiskSet = arr.filter((x) => x.riskScore < 0.5 && x.commission !== 100 && !x.oversubscribed);
+export function sortMedRisk(arr: Array<IStakingInfo>, minRewardPerDay: number): Array<IStakingInfo> {
+  const medRiskSet = arr.filter(
+    (x) =>
+      x.riskScore < 0.5 &&
+      x.commission !== 100 &&
+      !x.oversubscribed &&
+      !x.blocked &&
+      x.rewardsPer100KSM > minRewardPerDay,
+  );
 
   // Uncomment below if you want to include include suggestions from other risk-sets
 
@@ -44,14 +50,11 @@ export function sortMedRisk(arr: Array<IStakingInfo>): Array<IStakingInfo> {
   return medRiskSet;
 }
 
-export function sortHighRisk(arr: Array<IStakingInfo>): Array<IStakingInfo> {
-  const highRiskSet = arr.filter((x) => x.commission !== 100 && !x.oversubscribed);
+export function sortHighRisk(arr: Array<IStakingInfo>, minRewardPerDay: number): Array<IStakingInfo> {
+  const highRiskSet = arr.filter(
+    (x) => x.commission !== 100 && !x.oversubscribed && !x.blocked && x.rewardsPer100KSM > minRewardPerDay,
+  );
 
-  // Uncomment below if you want to include include suggestions from other risk-sets
-
-  // const remaining = arr.filter((n) => !medRiskSet.includes(n));
-  // const result = medRiskSet.concat(remaining);
-  // return result;
   return highRiskSet;
 }
 
