@@ -57,26 +57,30 @@ module.exports = {
 
     const nextElected = sessionAndNextElectedValidators.nextElected.map((x) => x.toString());
 
-    const nominations = (await api.query.staking.nominators.entries()).map((x) => {
-      return {
-        nomId: x[0].args[0].toString(),
-        targets: x[1].unwrap().targets.map((y) => y.toString()),
-      };
-    });
+    // Logger.info('getting nominations');
+    // const nominations = (await api.query.staking.nominators.entries()).map((x) => {
+    //   return {
+    //     nomId: x[0].args[0].toString(),
+    //     targets: x[1].unwrap().targets.map((y) => y.toString()),
+    //   };
+    // });
+    // Logger.info('got nominations');
 
-    // Logger.debug(sessionValidators);
+    Logger.info('getStakingInfo');
     let stakingInfo = await module.exports.getStakingInfo(
       api,
       sessionValidators,
       nextElected,
       waitingValidators,
-      nominations,
+      // nominations,
       allStashes,
       maxNominatorRewardedPerValidator,
       electedInfo,
     );
     // Logger.debug(stakingInfo);
+    Logger.info('getEstimatedPoolReward');
     stakingInfo = await module.exports.getEstimatedPoolReward(api, allStashes, stakingInfo, networkInfo);
+    Logger.info('getRiskScore');
     stakingInfo = await module.exports.getRiskScore(stakingInfo);
 
     // save next elected information
@@ -135,7 +139,7 @@ module.exports = {
     sessionValidators,
     nextElected,
     waitingValidators,
-    nominations,
+    // nominations,
     allStashes,
     maxNominatorRewardedPerValidator,
     electedInfo,
@@ -179,11 +183,12 @@ module.exports = {
               stake: stake,
             };
           })
-        : nominations
-            .filter((y) => y.targets.includes(stashId))
-            .map((z) => {
-              return { nomId: z.nomId };
-            });
+        : [];
+      // nominations
+      //     .filter((y) => y.targets.includes(stashId))
+      //     .map((z) => {
+      //       return { nomId: z.nomId };
+      //     });
       return {
         stashId: stashId,
         controllerId: controllerId,
