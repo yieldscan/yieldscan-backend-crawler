@@ -146,13 +146,13 @@ module.exports = {
   ) {
     await wait(5000);
 
-    const chunkedStashes = chunkArray(allStashes, 100);
+    const chunkedStashes = chunkArray(allStashes, 50);
     const stakingInfo = [];
 
     for (let i = 0; i < chunkedStashes.length; i++) {
       const info = await Promise.all(chunkedStashes[i].map((valId) => api.derive.staking.account(valId)));
       stakingInfo.push(...info);
-      await wait(5000);
+      await wait(1000);
     }
 
     return stakingInfo.map((x) => {

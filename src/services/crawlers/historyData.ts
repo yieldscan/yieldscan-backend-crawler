@@ -35,11 +35,12 @@ module.exports = {
 
       const slashInfo = [];
 
-      const chunkedArr = chunkArray(individuals, 100);
+      const chunkedArr = chunkArray(individuals, 50);
 
       for (let j = 0; j < chunkedArr.length; j++) {
         const info = await Promise.all(chunkedArr[j].map((val) => api.derive.staking.ownSlashes(val)));
         slashInfo.push(...info);
+        await wait(500);
       }
 
       individuals.map((x, index) => {
