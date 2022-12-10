@@ -53,7 +53,7 @@ module.exports = {
   getEraIndexes: async function (api, ValidatorHistory) {
     const Logger = Container.get('logger');
     const lastIndexDB = await ValidatorHistory.find({}).sort({ eraIndex: -1 }).limit(1);
-    const historyDepth = await api.query.staking.historyDepth();
+    const historyDepth = await api.consts.staking.historyDepth;
     const currentEra = await api.query.staking.currentEra();
     const lastAvailableEra = Math.max(1, currentEra - historyDepth);
 
