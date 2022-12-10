@@ -54,7 +54,7 @@ module.exports = {
     // get the latest eraIndex from the DB
     const lastIndexDB = await TotalRewardHistory.find({}).sort({ eraIndex: -1 }).limit(1);
     // Logger.debug(lastIndexDB);
-    const historyDepth = await api.query.staking.historyDepth();
+    const historyDepth = await api.consts.staking.historyDepth;
     const currentEra = await api.query.staking.currentEra();
     const lastAvailableEra = Math.max(1, currentEra - historyDepth);
     // Logger.debug(lastAvailableEra);
