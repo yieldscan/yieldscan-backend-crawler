@@ -3,7 +3,7 @@ import methodOverride from 'method-override';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 
-import routes from '../api';
+// import routes from '../api';
 import config from '../config';
 
 export default ({ app }: { app: express.Application }): void => {
@@ -34,7 +34,7 @@ export default ({ app }: { app: express.Application }): void => {
   app.use(bodyParser.json());
 
   // Load API routes
-  app.use(config.api.prefix, routes());
+  // app.use(config.api.prefix, routes());
 
   /// catch 404 and forward to error handler
 
