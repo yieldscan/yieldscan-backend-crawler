@@ -26,11 +26,11 @@ startCrawlers().catch((error) => {
 async function startServer() {
   const app = express();
 
-  app.listen(config.port, (err) => {
-    if (err) {
-      Logger.error(err);
-      process.exit(1);
-    }
+  app.listen(config.port, () => {
+    // if (err) {
+    //   Logger.error(err);
+    //   process.exit(1);
+    // }
     Logger.info(`
       ################################################
       🛡️  Server listening on port: ${config.port} 🛡️
