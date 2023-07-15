@@ -85,7 +85,8 @@ module.exports = {
     }, []);
 
     Logger.info('getting slash info');
-    const slashes = await module.exports.getSlashes(api, pointsHistory);
+    // const slashes = await module.exports.getSlashes(api, pointsHistory);
+    const slashes = {};
 
     Logger.info('getting val exposure and prefs');
     for (let i = 0; i < pointsHistory.length; i++) {
@@ -120,7 +121,7 @@ module.exports = {
             nomStake: parseInt(x.value),
           };
         });
-        const slashInfo = slashes[y].filter((x) => parseInt(x.era) == pointsHistory[i].eraIndex);
+        // const slashInfo = slashes[y].filter((x) => parseInt(x.era) == pointsHistory[i].eraIndex);
         rewards.push({
           stashId: y,
           commission: parseInt(valPrefs2[index].commission),
@@ -129,7 +130,7 @@ module.exports = {
           totalEraPoints: parseInt(pointsHistory[i].erasRewardPoints.eraPoints),
           totalStake: parseInt(valExposure2[index].total),
           nominatorsInfo: nominatorsInfo,
-          slashCount: slashInfo[0] !== undefined ? parseInt(slashInfo[0].total) : 0,
+          // slashCount: slashInfo[0] !== undefined ? parseInt(slashInfo[0].total) : 0,
         });
       });
 
