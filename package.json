@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "YieldScan Backend",
   "main": "src/app.ts",
+  "engines": {
+    "node": "18.13.0"
+  },
   "scripts": {
     "build": "tsc",
     "start": "ts-node  --transpile-only ./src/app.ts",
@@ -22,7 +25,7 @@
     "kusama"
   ],
   "dependencies": {
-    "@polkadot/api": "^9.13.5",
+    "@polkadot/api": "^10.9.1",
     "body-parser": "^1.19.0",
     "celebrate": "^15.0.0",
     "cors": "^2.8.5",
