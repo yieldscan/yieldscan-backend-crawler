@@ -47,14 +47,14 @@ export default {
   wsProviderUrl: process.env.WS_KUSAMA_PROVIDER_URL,
 
   networks: [
-    {
-      name: 'polkadot',
-      wsProviderUrl: process.env.WS_POLKADOT_PROVIDER_URL,
-      decimalPlaces: 10,
-      erasPerDay: 1,
-      lockUpPeriod: 28,
-      testnet: false,
-    },
+    // {
+    //   name: 'polkadot',
+    //   wsProviderUrl: process.env.WS_POLKADOT_PROVIDER_URL,
+    //   decimalPlaces: 10,
+    //   erasPerDay: 1,
+    //   lockUpPeriod: 28,
+    //   testnet: false,
+    // },
     {
       name: 'kusama',
       wsProviderUrl: process.env.WS_KUSAMA_PROVIDER_URL,
