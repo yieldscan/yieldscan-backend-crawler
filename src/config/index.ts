@@ -63,14 +63,14 @@ export default {
       lockUpPeriod: 7,
       testnet: false,
     },
-    {
-      name: 'westend',
-      wsProviderUrl: process.env.WS_WESTEND_PROVIDER_URL,
-      decimalPlaces: 12,
-      erasPerDay: 4,
-      lockUpPeriod: 7,
-      testnet: true,
-    },
+    // {
+    //   name: 'westend',
+    //   wsProviderUrl: process.env.WS_WESTEND_PROVIDER_URL,
+    //   decimalPlaces: 12,
+    //   erasPerDay: 4,
+    //   lockUpPeriod: 7,
+    //   testnet: true,
+    // },
   ],
 
   crawlers: {
