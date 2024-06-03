@@ -118,11 +118,3 @@ You can run a docker container via -
 ```
 docker run -e MONGODB_URI=<your mongodb connection url> -t sahilnanda/yieldscan-crawler
 ```
-
-## Tests:
-
-You can run tests via -
-
-```
-npm run test
-```
